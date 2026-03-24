@@ -4,7 +4,7 @@ def add(a, b):
 
 def main():
     a = 2
-    b = 2
+    b = 6
     expected = 5
     result = add(a, b)
 

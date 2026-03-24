@@ -7,6 +7,12 @@ on:
       - synchronize
       - reopened
       - ready_for_review
+  
+  push:
+    branches:
+      - main
+      - DEV
+      - TEST
 
 env:
   ALLOWED_BRANCHES: main, DEV, TEST

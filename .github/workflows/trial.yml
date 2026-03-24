@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   branch-filter:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest   
     outputs:
       should_run: ${{ steps.evaluate.outputs.should_run }}
 

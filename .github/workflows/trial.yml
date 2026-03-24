@@ -7,17 +7,23 @@ on:
       - synchronize
       - reopened
       - ready_for_review
+  
+  push:
+    branches:
+      - main
+      - DEV
+      - TEST
 
 env:
   ALLOWED_BRANCHES: main, DEV, TEST
-
+  
 concurrency:
   group: trial-workflow-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
   branch-filter:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest   
     outputs:
       should_run: ${{ steps.evaluate.outputs.should_run }}
 

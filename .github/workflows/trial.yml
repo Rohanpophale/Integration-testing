@@ -1,0 +1,81 @@
+name: Trial Workflow
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+env:
+  ALLOWED_BRANCHES: DEV, TEST
+
+concurrency:
+  group: trial-workflow-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  branch-filter:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.evaluate.outputs.should_run }}
+      allowed_branches: ${{ steps.evaluate.outputs.allowed_branches }}
+    steps:
+      - name: Evaluate target branch
+        id: evaluate
+        shell: bash
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          normalized_base_ref="$(echo "$BASE_REF" | tr '[:upper:]' '[:lower:]' | xargs)"
+          should_run="false"
+          formatted_branches=""
+
+          IFS=',' read -ra raw_branches <<< "$ALLOWED_BRANCHES"
+          for raw_branch in "${raw_branches[@]}"; do
+            branch="$(echo "$raw_branch" | xargs)"
+            if [ -z "$branch" ]; then
+              continue
+            fi
+
+            if [ -n "$formatted_branches" ]; then
+              formatted_branches="${formatted_branches}, "
+            fi
+            formatted_branches="${formatted_branches}${branch}"
+
+            normalized_branch="$(echo "$branch" | tr '[:upper:]' '[:lower:]')"
+            if [ "$normalized_base_ref" = "$normalized_branch" ]; then
+              should_run="true"
+            fi
+          done
+
+          echo "allowed_branches=$formatted_branches" >> "$GITHUB_OUTPUT"
+          echo "should_run=$should_run" >> "$GITHUB_OUTPUT"
+
+  trial-run:
+    needs: branch-filter
+    if: needs.branch-filter.outputs.should_run == 'true' && github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run trial script
+        run: python helloworld.py
+
+  branch-not-eligible:
+    needs: branch-filter
+    if: needs.branch-filter.outputs.should_run != 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Report skip reason
+        run: |
+          echo "Trial workflow skipped because PR target branch '${{ github.base_ref }}' is not in the allowed branch list: ${{ needs.branch-filter.outputs.allowed_branches }}."

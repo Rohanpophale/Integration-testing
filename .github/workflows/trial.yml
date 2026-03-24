@@ -9,7 +9,7 @@ on:
       - ready_for_review
 
 env:
-  ALLOWED_BRANCHES: DEV, TEST
+  ALLOWED_BRANCHES: main, DEV, TEST
 
 concurrency:
   group: trial-workflow-${{ github.event.pull_request.number }}
